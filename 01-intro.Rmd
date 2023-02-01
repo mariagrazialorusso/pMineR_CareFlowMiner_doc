@@ -68,6 +68,8 @@ This is accomplished by splitting the population into two sub-cohorts by the val
  
   - _Number of patients for each of the two sub-cohorts passing through the nodes_. This results in the node-by-node creation of a contingency matrix on which, depending on the observed cardinality, either a Fisher's exact test or a Pearson's Chi-square test is applied. If the p-value for that node is lower than the threshold entered in the "fisher.threshold" input, the node will be colored in yellow.
   
+  
+  
 ```{r,warning=FALSE}
 
 out.list2<-objCFM$plotCFGraphComparison(stratifyFor = "Sex",stratificationValues = c("M","F"),
@@ -90,10 +92,43 @@ grViz(out.list3$script)
 ```{r,warning=FALSE}
 out.list4 <- objCFM$plotCFGraphComparison(stratifyFor = "Sex",stratificationValues = c("M","F"),
                                              depth = Inf,abs.threshold = 4,hitsMeansReachAGivenFinalState = TRUE,
-                                          arr.States.color=c("MedicalVisit"="Lavender","Biopsy"="Red"),
+                                          arr.States.color=c("Medical Visit"="Lavender","Biopsy"="Red"),
                                              finalStateForHits = "death", kindOfGraph = "dot",nodeShape = "square")
 grViz(out.list4$script)
 ```
+
+
+The population can also be divided into groups according to a numerical attribute. In this instance, we will use "stratificationThreshold" in place of the "stratificationValues" input to represent the population stratification threshold. In the following example, we chose to divide the population based on the average value of "attribute1":
+
+```{r}
+median.value<-median(obj.out$original.CSV$attribute1)
+out.list5<-objCFM$plotCFGraphComparison(stratifyFor = "attribute1",stratificationThreshold = median.value,
+                                        depth = 5,abs.threshold = 4,fisher.threshold = 0.05,
+                                        kindOfGraph = "dot",nodeShape = "square")
+grViz(out.list5$script)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
