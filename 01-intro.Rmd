@@ -1,0 +1,99 @@
+# Compute graph: plotCFGraph() function
+
+The plotCFGraph() method allows the creation of a graph representing most typical paths in the Event Log. The creation of the graph is done using the Careflow Miner (CFM) algorithm, which extracts the more "frequent" careflows from process data. CFM algorithm is inspired by sequential pattern mining techniques. To assess the frequency of a particular trace, the algorithm relies on the notion of support. Sequence support is a proportion defined as the number of patients (NS) experiencing a specific sequence (S) of events over the total number of patients in the analyzed population (N). We define "frequent" patters as those with support above a certain user-defined threshold. 
+
+The other important parameter of the CFM algorithm is the "maximum length" parameter, which represents a constraint on the maximum number of events included in the careflow.
+
+The plotCFgraph function needs a certain set of specified input:
+ 
+ - **abs.threshold**: interger corresponding to the support parameter threshold (default= NA which equals to support threshold = 1)
+ - **depth**: integer corresponding to the maximum length parameter (default=2)
+ 
+Here is an illustration of how to use the plotCFgraph:
+
+```{r, echo=FALSE, eval=TRUE, include=TRUE, results='hide', warning=FALSE, message=FALSE}
+library(pMineR)
+objDL<-dataLoader()
+objDL$load.csv(nomeFile = "EventLog1.csv",IDName = "ID",EVENTName = "Event",dateColumnName = "Date",format.column.date = "%Y-%m-%d",sep = ",")
+obj.out<-objDL$getData()
+
+objCFM<-careFlowMiner()
+objCFM$loadDataset(obj.out)
+
+```
+
+```{r,echo= TRUE, eval=TRUE}
+out.list<-objCFM$plotCFGraph(depth = 4, abs.threshold = 4)
+class(out.list)
+```
+
+
+As you can see the function outputs a list of different elements. The one we will focus on is the script element, which allows the actual representation of the graph using the _grViz()_ function from _DiagrammeR_
+
+```{r, echo=TRUE, eval=TRUE}
+library(DiagrammeR)
+grViz(out.list$script)
+```
+
+
+Some of the input from the plotCFgraph function can be used to change the graph. 
+
+Assume, for instance, that we want to plot each node's id and the median of times related to the "root" node we want to use the median times to determine the color of the graph:
+
+```{r,echo= TRUE, eval=TRUE}
+out.list<-objCFM$plotCFGraph(depth = 4, abs.threshold = 4,printNodeID = T,
+                             show.far.leaf = T,show.median.time.from.root = T,
+                             heatmap.based.on.median.time = c(10,20,25), heatmap.base.color = "Gold")
+grViz(out.list$script)
+```
+
+
+The plotCFgraph() function allows through the use of specific inputs to enrich the graph with information about the probability of incurring a certain future state. Specifically:
+
+```{r,warning=FALSE}
+out.list<-objCFM$plotCFGraph(depth = Inf, abs.threshold = 4,predictive.model = TRUE,show.far.leaf = T,
+                             predictive.model.outcome = "Biopsy",
+                             kindOfGraph = "dot",nodeShape = "square")
+
+grViz(out.list$script)
+```
+
+
+
+# Inferential Analysis: plotCFGraphComparison() function
+
+The CFM implementation in pMineR enables the original version of the technique to be enhanced with several features intended to combine the benefits of Process Discovery with those of inferential statistics.
+
+This is accomplished by splitting the population into two sub-cohorts by the value of a specific event attribute. The Care Flow Mining algorithm is then applied on each sub-cohort , thus creating two different outputs. Given the two different CFMs, these can be compared based on several parameters:
+ 
+  - _Number of patients for each of the two sub-cohorts passing through the nodes_. This results in the node-by-node creation of a contingency matrix on which, depending on the observed cardinality, either a Fisher's exact test or a Pearson's Chi-square test is applied. If the p-value for that node is lower than the threshold entered in the "fisher.threshold" input, the node will be colored in yellow.
+  
+```{r,warning=FALSE}
+
+out.list2<-objCFM$plotCFGraphComparison(stratifyFor = "Sex",stratificationValues = c("M","F"),
+                                        depth = 5,abs.threshold = 4,fisher.threshold = 0.05,
+                                       kindOfGraph = "dot",nodeShape = "square")
+grViz(out.list2$script)
+
+```
+  
+  - _Time required to reach each node_.  The same steps as in the previous point are followed, but the Mann-Whitney test is used to determine whether there are any differences between the distribution of times between the two cohorts.
+```{r,warning=FALSE}
+out.list3<-objCFM$plotCFGraphComparison(stratifyFor = "Sex",stratificationValues = c("M","F"),
+                                        depth = 5,abs.threshold = 4,checkDurationFromRoot = T,
+                                       kindOfGraph = "dot",nodeShape = "square")
+grViz(out.list3$script)
+```
+
+  - _Number of patients passing through the nodes, among those who would later experience a specific "future state"_. The main difference between this analysis and the first one is that comparisons will be made on a subset of this population, defined by the fact that patients in the subset will experience a given event specified as a "future state" in the future, rather than on the entire population transiting a node, for each sub-cohort. And again, a Fisher's exact test or a Pearson's Chi-square test will be employed.
+
+```{r,warning=FALSE}
+out.list4 <- objCFM$plotCFGraphComparison(stratifyFor = "Sex",stratificationValues = c("M","F"),
+                                             depth = Inf,abs.threshold = 4,hitsMeansReachAGivenFinalState = TRUE,
+                                          arr.States.color=c("MedicalVisit"="Lavender","Biopsy"="Red"),
+                                             finalStateForHits = "death", kindOfGraph = "dot",nodeShape = "square")
+grViz(out.list4$script)
+```
+
+
+
