@@ -71,7 +71,6 @@ This is accomplished by splitting the population into two sub-cohorts by the val
   
   
 ```{r,warning=FALSE}
-
 out.list2<-objCFM$plotCFGraphComparison(stratifyFor = "Sex",stratificationValues = c("M","F"),
                                         depth = 5,abs.threshold = 4,fisher.threshold = 0.05,
                                        kindOfGraph = "dot",nodeShape = "square")
